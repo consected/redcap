@@ -65,8 +65,8 @@ module Redcap
       @logger.debug message
     end
 
-    def project
-      payload = build_payload content: :project
+    def project(request_options: nil)
+      payload = build_payload content: :project, request_options: request_options
       post payload
     end
 
@@ -78,13 +78,15 @@ module Redcap
       metadata.map { |m| m['field_name'].to_sym }
     end
 
-    def metadata
+    def metadata(request_options: nil)
       payload = {
         token: configuration.token,
         format: configuration.format,
         content: :metadata,
         fields: []
       }
+
+      payload.merge! request_options if request_options
       post payload
     end
 
@@ -99,7 +101,7 @@ module Redcap
       post payload
     end
 
-    def update(data = [])
+    def update(data = [], request_options: nil)
       payload = {
         token: configuration.token,
         format: configuration.format,
@@ -109,12 +111,13 @@ module Redcap
         returnContent: :count,
         data: data.to_json
       }
+      payload.merge! request_options if request_options
       log flush_cache if ENV['REDCAP_CACHE'] == 'ON'
       result = post payload
       result['count'] == 1
     end
 
-    def create(data = [])
+    def create(data = [], request_options: nil)
       payload = {
         token: configuration.token,
         format: configuration.format,
@@ -124,14 +127,15 @@ module Redcap
         returnContent: :ids,
         data: data.to_json
       }
+      payload.merge! request_options if request_options
       log flush_cache if ENV['REDCAP_CACHE'] == 'ON'
       post payload
     end
 
-    def delete(ids)
+    def delete(ids, request_options: nil)
       return unless ids.is_a?(Array) && ids.any?
 
-      payload = build_payload content: :record, records: ids, action: :delete
+      payload = build_payload content: :record, records: ids, action: :delete, request_options: request_options
       log flush_cache if ENV['REDCAP_CACHE'] == 'ON'
       post payload
     end
