@@ -70,6 +70,11 @@ module Redcap
       post payload
     end
 
+    def project_xml(request_options: nil)
+      payload = build_payload content: :project_xml, request_options: request_options
+      post_file_request payload
+    end
+
     def max_id
       records(fields: %w[record_id]).map(&:values).flatten.map(&:to_i).max.to_i
     end
@@ -140,6 +145,13 @@ module Redcap
       post payload
     end
 
+    def file(record_id, field_name)
+      payload = build_payload content: :file,
+                              action: :export,
+                              request_options: { field: field_name, record: record_id }
+      post_file_request payload
+    end
+
     private
 
     def build_payload(content: nil, records: [], fields: [], filter: nil, action: nil, request_options: nil)
@@ -172,5 +184,14 @@ module Redcap
       response
     end
     memoize(:post) if ENV['REDCAP_CACHE'] == 'ON'
+
+    def post_file_request(payload = {})
+      log "Redcap POST for file field to #{configuration.host} with #{payload}"
+      response = RestClient::Request.execute method: :post, url: configuration.host, payload: payload, raw_response: true
+      file = response.file
+      log 'File:'
+      log file
+      file
+    end
   end
 end
