@@ -70,6 +70,11 @@ module Redcap
       post payload
     end
 
+    def user(request_options: nil)
+      payload = build_payload content: :user, request_options: request_options
+      post payload
+    end
+
     def project_xml(request_options: nil)
       payload = build_payload content: :project_xml, request_options: request_options
       post_file_request payload
@@ -187,7 +192,8 @@ module Redcap
 
     def post_file_request(payload = {})
       log "Redcap POST for file field to #{configuration.host} with #{payload}"
-      response = RestClient::Request.execute method: :post, url: configuration.host, payload: payload, raw_response: true
+      response = RestClient::Request.execute method: :post, url: configuration.host, payload: payload,
+                                             raw_response: true
       file = response.file
       log 'File:'
       log file
