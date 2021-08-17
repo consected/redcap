@@ -100,6 +100,17 @@ module Redcap
       post payload
     end
 
+    def instrument(request_options: nil)
+      payload = {
+        token: configuration.token,
+        format: configuration.format,
+        content: :instrument
+      }
+
+      payload.merge! request_options if request_options
+      post payload
+    end
+
     def records(records: [], fields: [], filter: nil, request_options: nil)
       # add :record_id if not included
       fields |= [:record_id] if fields.any?
