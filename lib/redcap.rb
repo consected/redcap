@@ -122,6 +122,15 @@ module Redcap
       post payload
     end
 
+    def survey_link(instrument: nil, record_id: nil, request_options: nil)
+      payload = build_payload content: :surveyLink,
+                              instrument: instrument,
+                              record_id: record_id.to_s,
+                              request_options: request_options
+
+      post payload
+    end
+
     def update(data = [], request_options: nil)
       payload = {
         token: configuration.token,
