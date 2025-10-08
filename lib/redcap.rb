@@ -46,6 +46,9 @@ module Redcap
 
     attr_reader :logger
     attr_writer :log
+
+    # raw_response - if true, treat the response as a plain string rather than attempting to parse JSON
+    # response_code - HTTP response code from the last request
     attr_accessor :raw_response, :response_code
 
     def initialize
@@ -124,13 +127,14 @@ module Redcap
     end
 
     def survey_link(instrument: nil, record_id: nil, request_options: nil)
-      attrs = {                                      
+      attrs = {
         instrument: instrument,
         record: record_id.to_s
       }
 
       request_options = attrs.merge(request_options)
 
+      # Ensure that we interpret the response as a simple string, rather than attempting to parse JSON
       self.raw_response = true
 
       payload = build_payload content: :surveyLink,
@@ -140,7 +144,7 @@ module Redcap
     end
 
     def participant_list(instrument: nil, event: nil, request_options: nil)
-      attrs = {                                      
+      attrs = {
         instrument: instrument,
         event: event
       }
@@ -185,7 +189,7 @@ module Redcap
 
       post payload
     end
-    
+
     def update(data = [], request_options: nil)
       payload = {
         token: configuration.token,
@@ -262,10 +266,13 @@ module Redcap
       response = RestClient.post configuration.host, payload
       self.response_code = response.code
 
-      unless raw_response
-        response = JSON.parse(response) 
-      else
+      if raw_response
+        # For a raw response, just return a string (null will become an empty string)
+        # Set the raw_response flag back to false for future requests
+        self.raw_response = false
         response = response.to_s
+      else
+        response = JSON.parse(response)
       end
       log 'Response:'
       log response
@@ -277,7 +284,7 @@ module Redcap
       log "Redcap POST for file field to #{configuration.host} with #{payload}"
       response = RestClient::Request.execute method: :post, url: configuration.host, payload: payload,
                                              raw_response: true
-      
+
       self.response_code = response.code
       file = response.file
       log 'File:'
