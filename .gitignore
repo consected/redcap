@@ -1,5 +1,6 @@
 .env
 .autotest
+.vscode/
 
 /.yardoc/
 /_yardoc/

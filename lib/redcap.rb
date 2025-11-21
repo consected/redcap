@@ -115,6 +115,28 @@ module Redcap
       post payload
     end
 
+    def form_event_mapping(request_options: nil)
+      payload = {
+        token: configuration.token,
+        format: configuration.format,
+        content: :formEventMapping
+      }
+
+      payload.merge! request_options if request_options
+      post payload
+    end
+
+    def export_field_names(request_options: nil)
+      payload = {
+        token: configuration.token,
+        format: configuration.format,
+        content: :exportFieldNames
+      }
+
+      payload.merge! request_options if request_options
+      post payload
+    end
+
     def records(records: [], fields: [], filter: nil, request_options: nil)
       # add :record_id if not included
       fields |= [:record_id] if fields.any?
