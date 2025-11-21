@@ -20,7 +20,7 @@ module Redcap
         options[:token] = ENV['REDCAP_TOKEN']
       end
       self.configure = options
-      Redcap::Client.new
+      Redcap::Client.new(logger: configuration.logger, log_level: configuration.log_level)
     end
 
     def configuration
@@ -51,36 +51,56 @@ module Redcap
     # response_code - HTTP response code from the last request
     attr_accessor :raw_response, :response_code
 
-    def initialize
-      @logger = Logger.new STDOUT
+    #
+    # Initialize the client and optionally set logger options
+    # @param [Logger] logger - default Logger, or for example pass an instance of a Rails logger
+    # @param [Logger::Severity | nil] log_level - default level to log messages or nil to disable logging
+    def initialize(logger: nil, log_level: nil)
+      @logger = logger || Logger.new(STDOUT)
+      @log = log_level
+      return if log_level.nil?
+
+      raise StandardError, 'Redcap log level invalid' unless log_level.in?(Logger::Severity.constants)
     end
 
     def configuration
       Redcap.configuration
     end
 
+    #
+    # Set to log only if the @log level is not nil
+    # @return [Boolean]
     def log?
-      @log ||= false
+      !!@log
     end
 
-    def log(message)
-      return unless @log
+    #
+    # Log message using logger instance, at either the default level (@log)
+    # or the specified `level` parameter
+    # @param [String] message The message to log
+    # @param [Logger::Severity | nil] level The log level to use, or nil to use the default
+    def log(message, level: nil)
+      level ||= @log
+      return unless level
 
-      @logger.debug message
+      @logger.add(level, message)
     end
 
     def project(request_options: nil)
-      payload = build_payload content: :project, request_options: request_options
+      payload = build_payload(content: :project,
+                              request_options: request_options)
       post payload
     end
 
     def user(request_options: nil)
-      payload = build_payload content: :user, request_options: request_options
+      payload = build_payload(content: :user,
+                              request_options: request_options)
       post payload
     end
 
     def project_xml(request_options: nil)
-      payload = build_payload content: :project_xml, request_options: request_options
+      payload = build_payload(content: :project_xml,
+                              request_options: request_options)
       post_file_request payload
     end
 
@@ -140,11 +160,11 @@ module Redcap
     def records(records: [], fields: [], filter: nil, request_options: nil)
       # add :record_id if not included
       fields |= [:record_id] if fields.any?
-      payload = build_payload content: :record,
+      payload = build_payload(content: :record,
                               records: records,
                               fields: fields,
                               filter: filter,
-                              request_options: request_options
+                              request_options: request_options)
       post payload
     end
 
@@ -159,8 +179,8 @@ module Redcap
       # Ensure that we interpret the response as a simple string, rather than attempting to parse JSON
       self.raw_response = true
 
-      payload = build_payload content: :surveyLink,
-                              request_options: request_options
+      payload = build_payload(content: :surveyLink,
+                              request_options: request_options)
 
       post payload
     end
@@ -173,8 +193,8 @@ module Redcap
 
       request_options = attrs.merge(request_options)
 
-      payload = build_payload content: :participantList,
-                              request_options: request_options
+      payload = build_payload(content: :participantList,
+                              request_options: request_options)
 
       post payload
     end
@@ -184,30 +204,26 @@ module Redcap
 
       request_options = attrs.merge(request_options)
 
-      payload = build_payload content: :arm,
-                              request_options: request_options
+      payload = build_payload(content: :arm,
+                              request_options: request_options)
 
       post payload
     end
 
     def event(request_options: nil)
       attrs = {}
-
       request_options = attrs.merge(request_options)
-
-      payload = build_payload content: :event,
-                              request_options: request_options
+      payload = build_payload(content: :event,
+                              request_options: request_options)
 
       post payload
     end
 
     def repeating_forms_events(request_options: nil)
       attrs = {}
-
       request_options = attrs.merge(request_options)
-
-      payload = build_payload content: :repeatingFormsEvents,
-                              request_options: request_options
+      payload = build_payload(content: :repeatingFormsEvents,
+                              request_options: request_options)
 
       post payload
     end
@@ -222,6 +238,7 @@ module Redcap
         returnContent: :count,
         data: data.to_json
       }
+
       payload.merge! request_options if request_options
       log flush_cache if ENV['REDCAP_CACHE'] == 'ON'
       result = post payload
@@ -284,7 +301,7 @@ module Redcap
     end
 
     def post(payload = {})
-      log "Redcap POST to #{configuration.host} with #{payload}"
+      log "Redcap POST to #{configuration.host} with #{clean_for_log(payload)}"
       response = RestClient.post configuration.host, payload
       self.response_code = response.code
 
@@ -296,22 +313,30 @@ module Redcap
       else
         response = JSON.parse(response)
       end
-      log 'Response:'
-      log response
+
+      log "Response: #{response_code}"
+      log response, level: Logger::DEBUG
       response
     end
     memoize(:post) if ENV['REDCAP_CACHE'] == 'ON'
 
     def post_file_request(payload = {})
-      log "Redcap POST for file field to #{configuration.host} with #{payload}"
+      log "Redcap POST for file field to #{configuration.host} with #{clean_for_log(payload)}"
       response = RestClient::Request.execute method: :post, url: configuration.host, payload: payload,
                                              raw_response: true
 
       self.response_code = response.code
       file = response.file
-      log 'File:'
+      log "File: #{response.code}"
       log file
       file
+    end
+
+    def clean_for_log(payload)
+      clean_payload = payload.dup
+      clean_payload[:token] = '***FILTERED***' if clean_payload.key?(:token)
+      clean_payload[:data] = '***FILTERED***' if clean_payload.key?(:data)
+      clean_payload
     end
   end
 end
