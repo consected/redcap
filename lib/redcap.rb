@@ -51,6 +51,18 @@ module Redcap
     # response_code - HTTP response code from the last request
     attr_accessor :raw_response, :response_code
 
+    ValidExportLogTypes = {
+      export: 'Data export',
+      manage: 'Manage/Design',
+      user: 'User or role created-updated-deleted',
+      record: 'Record created-updated-deleted',
+      record_add: 'Record created (only)',
+      record_edit: 'Record updated (only)',
+      record_delete: 'Record deleted (only)',
+      lock_record: 'Record locking & e-signatures',
+      page_view: 'Page Views'
+    }.freeze
+
     #
     # Initialize the client and optionally set logger options
     # @param [Logger] logger - default Logger, or for example pass an instance of a Rails logger
@@ -258,6 +270,24 @@ module Redcap
                               action: :export,
                               request_options:)
       post_file_request payload
+    end
+
+    def export_log(record_id: nil, begin_time: nil, end_time: nil, log_type: nil, request_options: nil)
+      request_options ||= {}
+      request_options[:record] = record_id if record_id
+      request_options[:beginTime] = begin_time if begin_time
+      request_options[:endTime] = end_time if end_time
+      request_options[:logType] = log_type if log_type
+      
+      if log_type && !ValidExportLogTypes.key?(log_type.to_sym)
+        raise ArgumentError, "Redcap export_log invalid log_type '#{log_type}'. Valid types are: #{ValidExportLogTypes.keys.join(', ')}"
+      end
+
+      payload = build_payload(content: :log,
+                              action: :export,
+                              request_options: request_options)
+
+      post payload
     end
 
     private
