@@ -58,9 +58,6 @@ module Redcap
     def initialize(logger: nil, log_level: nil)
       @logger = logger || Logger.new(STDOUT)
       @log = log_level
-      return if log_level.nil?
-
-      raise StandardError, 'Redcap log level invalid' unless log_level.in?(Logger::Severity.constants)
     end
 
     def configuration
@@ -169,12 +166,9 @@ module Redcap
     end
 
     def survey_link(instrument: nil, record_id: nil, request_options: nil)
-      attrs = {
-        instrument: instrument,
-        record: record_id.to_s
-      }
-
-      request_options = attrs.merge(request_options)
+      request_options ||= {}
+      request_options[:instrument] = instrument if instrument
+      request_options[:record] = record_id.to_s if record_id
 
       # Ensure that we interpret the response as a simple string, rather than attempting to parse JSON
       self.raw_response = true
@@ -186,12 +180,9 @@ module Redcap
     end
 
     def participant_list(instrument: nil, event: nil, request_options: nil)
-      attrs = {
-        instrument: instrument,
-        event: event
-      }
-
-      request_options = attrs.merge(request_options)
+      request_options ||= {}
+      request_options[:instrument] = instrument if instrument
+      request_options[:event] = event if event
 
       payload = build_payload(content: :participantList,
                               request_options: request_options)
@@ -200,10 +191,6 @@ module Redcap
     end
 
     def arm(request_options: nil)
-      attrs = {}
-
-      request_options = attrs.merge(request_options)
-
       payload = build_payload(content: :arm,
                               request_options: request_options)
 
@@ -211,8 +198,6 @@ module Redcap
     end
 
     def event(request_options: nil)
-      attrs = {}
-      request_options = attrs.merge(request_options)
       payload = build_payload(content: :event,
                               request_options: request_options)
 
@@ -220,8 +205,6 @@ module Redcap
     end
 
     def repeating_forms_events(request_options: nil)
-      attrs = {}
-      request_options = attrs.merge(request_options)
       payload = build_payload(content: :repeatingFormsEvents,
                               request_options: request_options)
 
