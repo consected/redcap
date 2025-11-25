@@ -342,7 +342,7 @@ module Redcap
 
       self.response_code = response&.code
       file = response&.file
-      log 'File response nil' if reponse.nil?
+      log 'File response nil' if response.nil?
       log "File response code: #{response_code}"
       log file, level: Logger::DEBUG
       file
