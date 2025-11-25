@@ -323,8 +323,10 @@ module Redcap
         # Set the raw_response flag back to false for future requests
         self.raw_response = false
         response = response.to_s
-      else
+      elsif response
         response = JSON.parse(response)
+      elsif response.nil?
+        log 'Response nil'
       end
 
       log "Response: #{response_code}"
@@ -340,8 +342,9 @@ module Redcap
 
       self.response_code = response&.code
       file = response&.file
-      log "File response: #{response_code}"
-      log file
+      log 'File response nil' if reponse.nil?
+      log "File response code: #{response_code}"
+      log file, level: Logger::DEBUG
       file
     end
 
