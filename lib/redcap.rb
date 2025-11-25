@@ -316,7 +316,7 @@ module Redcap
     def post(payload = {})
       log "Redcap POST to #{configuration.host} with #{clean_for_log(payload)}"
       response = RestClient.post configuration.host, payload
-      self.response_code = response.code
+      self.response_code = response&.code
 
       if raw_response
         # For a raw response, just return a string (null will become an empty string)
@@ -338,9 +338,9 @@ module Redcap
       response = RestClient::Request.execute method: :post, url: configuration.host, payload: payload,
                                              raw_response: true
 
-      self.response_code = response.code
-      file = response.file
-      log "File: #{response.code}"
+      self.response_code = response&.code
+      file = response&.file
+      log "File response: #{response_code}"
       log file
       file
     end
